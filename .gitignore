@@ -1,0 +1,9 @@
+.tmp/
+.env
+*.mkv
+*.mp4
+*.mov
+*.avi
+__pycache__/
+*.pyc
+.DS_Store

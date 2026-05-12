@@ -1,0 +1,6 @@
+# Core: no pip dependencies. Runtime requirement: ffmpeg + ffprobe
+# Install: brew install ffmpeg  (macOS)  |  apt install ffmpeg  (Linux)
+
+# Optional: required only when --trigger-phrase is used
+# faster-whisper>=1.0.0
+# Install: pip install faster-whisper
