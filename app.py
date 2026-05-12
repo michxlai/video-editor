@@ -25,7 +25,7 @@ DARK_FG = "#d4d4d4"
 class App(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
-        self.title("Pause Remover")
+        self.title("Video Editor")
         self.resizable(False, False)
         self._input_path: Path | None = None
         self._tmp_out: Path | None = None
