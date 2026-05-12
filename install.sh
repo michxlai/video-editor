@@ -3,6 +3,7 @@ set -euo pipefail
 
 REPO="https://github.com/michxlai/video-editor.git"
 INSTALL_DIR="$HOME/video-editor"
+BIN_DIR="/usr/local/bin"
 
 # ── Homebrew ──────────────────────────────────────────────────────────────────
 if ! command -v brew &>/dev/null; then
@@ -20,9 +21,11 @@ if ! command -v ffmpeg &>/dev/null; then
 fi
 
 # ── Python 3.10+ ──────────────────────────────────────────────────────────────
-if ! python3 -c "import sys; exit(0 if sys.version_info >= (3,10) else 1)" 2>/dev/null; then
+PYTHON=$(command -v python3.12 || command -v python3.11 || command -v python3.10 || command -v python3 || true)
+if [ -z "$PYTHON" ] || ! "$PYTHON" -c "import sys; exit(0 if sys.version_info >= (3,10) else 1)" 2>/dev/null; then
     echo "→ Installing Python 3.12…"
     brew install python@3.12
+    PYTHON="$(brew --prefix python@3.12)/bin/python3.12"
 fi
 
 # ── Clone / update repo ───────────────────────────────────────────────────────
@@ -34,12 +37,21 @@ else
     git clone "$REPO" "$INSTALL_DIR"
 fi
 
+# ── Install launcher ──────────────────────────────────────────────────────────
+LAUNCHER="$BIN_DIR/video-editor"
+echo "→ Installing 'video-editor' command…"
+sudo tee "$LAUNCHER" > /dev/null <<EOF
+#!/usr/bin/env bash
+exec "$PYTHON" "$INSTALL_DIR/pause-remover/main.py" "\$@"
+EOF
+sudo chmod +x "$LAUNCHER"
+
 # ── Done ─────────────────────────────────────────────────────────────────────
 echo ""
-echo "Done. Run it:"
+echo "Done. Usage:"
 echo ""
-echo "  python3 $INSTALL_DIR/pause-remover/main.py --input video.mp4"
+echo "  video-editor --input video.mp4"
 echo ""
-echo "Voice-triggered cuts (install faster-whisper first):"
+echo "Voice-triggered cuts (one-time setup):"
 echo "  pip install faster-whisper"
-echo "  python3 $INSTALL_DIR/pause-remover/main.py --input video.mp4 --trigger-phrase \"remove last section\""
+echo "  video-editor --input video.mp4 --trigger-phrase \"remove last section\""
