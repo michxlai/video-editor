@@ -54,7 +54,7 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name='Video Editor.app',
-    icon=None,
+    icon='AppIcon.icns',
     bundle_identifier='com.michxlai.videoeditor',
     info_plist={
         'NSHighResolutionCapable': True,
