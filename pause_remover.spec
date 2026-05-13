@@ -33,7 +33,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='PauseRemover',
+    name='VideoEditor',
     debug=False,
     strip=False,
     upx=False,
@@ -48,18 +48,18 @@ coll = COLLECT(
     a.datas,
     strip=False,
     upx=False,
-    name='PauseRemover',
+    name='VideoEditor',
 )
 
 app = BUNDLE(
     coll,
-    name='PauseRemover.app',
+    name='Video Editor.app',
     icon=None,
-    bundle_identifier='com.michxlai.pauseremover',
+    bundle_identifier='com.michxlai.videoeditor',
     info_plist={
         'NSHighResolutionCapable': True,
-        'CFBundleShortVersionString': '1.0.0',
-        'CFBundleName': 'Pause Remover',
+        'CFBundleShortVersionString': '1.1.0',
+        'CFBundleName': 'Video Editor',
         'NSHumanReadableCopyright': '2025 michxlai',
     },
 )

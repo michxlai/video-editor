@@ -14,14 +14,34 @@ if [ ! -f bin/ffmpeg ] || [ ! -f bin/ffprobe ]; then
 fi
 
 echo "=== Installing PyInstaller ==="
-pip install pyinstaller --quiet
+PYTHON=$(command -v python3.12 || command -v python3.11 || command -v python3.10 || echo "python3")
+PIP="$PYTHON -m pip"
+$PIP install pyinstaller --quiet
 
 echo "=== Building .app ==="
-pyinstaller pause_remover.spec --noconfirm
+$PYTHON -m PyInstaller pause_remover.spec --noconfirm
+
+APP="dist/Video Editor.app"
+DMG="dist/VideoEditor-mac.dmg"
+VOL="Video Editor"
+
+echo "=== Building DMG ==="
+rm -f "$DMG"
+
+# Temp staging folder
+STAGING=$(mktemp -d)
+cp -r "$APP" "$STAGING/"
+ln -s /Applications "$STAGING/Applications"
+
+# Create DMG
+hdiutil create \
+    -volname "$VOL" \
+    -srcfolder "$STAGING" \
+    -ov -format UDZO \
+    "$DMG"
+
+rm -rf "$STAGING"
 
 echo ""
 echo "=== Done ==="
-echo "App: dist/PauseRemover.app"
-echo ""
-echo "To zip for distribution:"
-echo "  cd dist && zip -r PauseRemover-mac.zip PauseRemover.app"
+echo "DMG: $DMG"
