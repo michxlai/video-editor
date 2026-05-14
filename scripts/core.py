@@ -25,16 +25,23 @@ class ProcessConfig:
 def process_video(
     config: ProcessConfig,
     log_callback: Callable[[str], None] | None = None,
+    progress_callback: Callable[[float], None] | None = None,
 ) -> Path:
     def emit(msg: str) -> None:
         if log_callback:
             log_callback(msg)
 
+    def progress(pct: float) -> None:
+        if progress_callback:
+            progress_callback(pct)
+
     tmp_dir = Path(tempfile.mkdtemp(prefix="pause_remover_"))
     try:
+        progress(5)
         emit(f"Probing {config.input_path.name}…")
         probe = probe_file(config.input_path)
         emit(f"  codec={probe.video.codec_name}  duration={probe.duration:.2f}s")
+        progress(15)
 
         emit(f"Detecting silence  (threshold={config.noise_db}dB  min={config.min_pause}s)…")
         silences = detect_silence(
@@ -44,9 +51,11 @@ def process_video(
             total_duration=probe.duration,
         )
         emit(f"  {len(silences)} silence interval(s) found")
+        progress(50)
 
         segments = build_keep_segments(silences, probe.duration, padding=config.padding)
         emit(f"  {len(segments)} keep segment(s)")
+        progress(55)
 
         if not segments:
             emit("No speech detected — copying input unchanged")
@@ -63,6 +72,7 @@ def process_video(
             return config.output_path
 
         emit(f"Cutting and merging {len(segments)} segment(s)…")
+        progress(60)
 
         def _cut(genpts: bool = False) -> None:
             cut_and_merge(
@@ -101,6 +111,7 @@ def process_video(
         if last_exc is not None:
             raise last_exc
 
+        progress(100)
         emit("Done!")
         return config.output_path
 

@@ -41,10 +41,14 @@ class App(tk.Tk):
         file_frame.pack(fill="x", **outer)
         tk.Label(file_frame, text="Video:", width=6, anchor="w").pack(side="left")
         self._file_label = tk.Label(
-            file_frame, text="No file selected", anchor="w", fg="gray", width=38
+            file_frame, text="No file selected", anchor="w", fg="gray"
         )
         self._file_label.pack(side="left", expand=True, fill="x")
-        tk.Button(file_frame, text="Browse…", command=self._browse).pack(side="right")
+        tk.Button(file_frame, text="Browse…", command=self._browse).pack(side="right", padx=(4, 0))
+        self._remove_btn = tk.Button(
+            file_frame, text="Remove", command=self._remove_video, state="disabled",
+        )
+        self._remove_btn.pack(side="right", padx=(0, 4))
 
         # ── Settings ──────────────────────────────────────────────
         sf = tk.LabelFrame(self, text="Settings", padx=10, pady=6)
@@ -62,7 +66,8 @@ class App(tk.Tk):
             command=self._start,
             state="disabled",
             bg="#2563eb",
-            fg="white",
+            fg="#111111",
+            disabledforeground="#111111",
             font=("", 13, "bold"),
             pady=8,
             relief="flat",
@@ -70,7 +75,7 @@ class App(tk.Tk):
         self._btn.pack(fill="x")
 
         # ── Progress bar ──────────────────────────────────────────
-        self._progress = ttk.Progressbar(self, mode="indeterminate", length=400)
+        self._progress = ttk.Progressbar(self, mode="determinate", maximum=100, length=400)
         self._progress.pack(fill="x", padx=14, pady=(0, 4))
 
         # ── Log ───────────────────────────────────────────────────
@@ -124,6 +129,19 @@ class App(tk.Tk):
         parent.columnconfigure(1, weight=1)
         return var
 
+    def _remove_video(self) -> None:
+        if self._processing:
+            return
+        if self._tmp_out and self._tmp_out.exists():
+            self._tmp_out.unlink()
+        self._input_path = None
+        self._tmp_out = None
+        self._file_label.config(text="No file selected", fg="gray")
+        self._btn.config(state="disabled")
+        self._remove_btn.config(state="disabled")
+        self._progress["value"] = 0
+        self._log_clear()
+
     def _browse(self) -> None:
         path = filedialog.askopenfilename(
             title="Select a video file",
@@ -141,6 +159,10 @@ class App(tk.Tk):
         self._input_path = p
         self._file_label.config(text=p.name, fg="black")
         self._btn.config(state="normal")
+        self._remove_btn.config(state="normal")
+
+    def _set_progress(self, pct: float) -> None:
+        self._log_queue.put(f"__PROGRESS__{pct}")
 
     def _start(self) -> None:
         if self._processing or not self._input_path:
@@ -148,7 +170,7 @@ class App(tk.Tk):
         self._processing = True
         self._btn.config(state="disabled")
         self._log_clear()
-        self._progress.start(12)
+        self._progress["value"] = 0
 
         suffix = self._input_path.suffix
         fd, tmp_path = tempfile.mkstemp(suffix=f"_no_pauses{suffix}")
@@ -168,7 +190,7 @@ class App(tk.Tk):
 
     def _worker(self, config: ProcessConfig) -> None:
         try:
-            process_video(config, log_callback=self._log_queue.put)
+            process_video(config, log_callback=self._log_queue.put, progress_callback=self._set_progress)
             self._log_queue.put(None)  # success sentinel
         except Exception as exc:
             self._log_queue.put(f"ERROR: {exc}")
@@ -182,6 +204,8 @@ class App(tk.Tk):
                 done = True
             elif msg == "__FAIL__":
                 failed = True
+            elif isinstance(msg, str) and msg.startswith("__PROGRESS__"):
+                self._progress["value"] = float(msg[len("__PROGRESS__"):])
             else:
                 self._log_append(msg)
         if done:
@@ -192,7 +216,6 @@ class App(tk.Tk):
             self.after(100, self._poll)
 
     def _on_success(self) -> None:
-        self._progress.stop()
         self._processing = False
         self._btn.config(state="normal")
 
@@ -211,9 +234,11 @@ class App(tk.Tk):
             if self._tmp_out and self._tmp_out.exists():
                 self._tmp_out.unlink()
             self._log_append("\nSave cancelled.")
+        self._tmp_out = None
+        self.lift()
+        self.focus_force()
 
     def _on_failure(self) -> None:
-        self._progress.stop()
         self._processing = False
         self._btn.config(state="normal")
         if self._tmp_out and self._tmp_out.exists():

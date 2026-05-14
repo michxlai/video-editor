@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="https://github.com/michxlai/video-editor.git"
-INSTALL_DIR="$HOME/video-editor"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INSTALL_DIR="$HOME/.video-editor"
 BIN_DIR="/usr/local/bin"
+
+echo "=== Video Editor Installer ==="
+echo ""
 
 # ── Homebrew ──────────────────────────────────────────────────────────────────
 if ! command -v brew &>/dev/null; then
@@ -12,12 +15,16 @@ if ! command -v brew &>/dev/null; then
     for candidate in /opt/homebrew/bin/brew /usr/local/bin/brew; do
         [ -x "$candidate" ] && eval "$($candidate shellenv)" && break
     done
+else
+    echo "✓ Homebrew"
 fi
 
 # ── ffmpeg ────────────────────────────────────────────────────────────────────
 if ! command -v ffmpeg &>/dev/null; then
     echo "→ Installing ffmpeg…"
     brew install ffmpeg
+else
+    echo "✓ ffmpeg"
 fi
 
 # ── Python 3.10+ ──────────────────────────────────────────────────────────────
@@ -26,29 +33,27 @@ if [ -z "$PYTHON" ] || ! "$PYTHON" -c "import sys; exit(0 if sys.version_info >=
     echo "→ Installing Python 3.12…"
     brew install python@3.12
     PYTHON="$(brew --prefix python@3.12)/bin/python3.12"
+else
+    echo "✓ Python ($PYTHON)"
 fi
 
-# ── Clone / update repo ───────────────────────────────────────────────────────
-if [ -d "$INSTALL_DIR/.git" ]; then
-    echo "→ Updating video-editor…"
-    git -C "$INSTALL_DIR" pull --ff-only
-else
-    echo "→ Cloning video-editor…"
-    git clone "$REPO" "$INSTALL_DIR"
-fi
+# ── Copy app files ────────────────────────────────────────────────────────────
+echo "→ Installing to $INSTALL_DIR…"
+rm -rf "$INSTALL_DIR"
+mkdir -p "$INSTALL_DIR"
+cp -r "$SCRIPT_DIR/." "$INSTALL_DIR/"
 
 # ── Install launcher ──────────────────────────────────────────────────────────
-LAUNCHER="$BIN_DIR/video-editor"
 echo "→ Installing 'video-editor' command…"
-sudo tee "$LAUNCHER" > /dev/null <<EOF
+sudo tee "$BIN_DIR/video-editor" > /dev/null <<EOF
 #!/usr/bin/env bash
-exec "$PYTHON" "$INSTALL_DIR/pause-remover/main.py" "\$@"
+exec "$PYTHON" "$INSTALL_DIR/main.py" "\$@"
 EOF
-sudo chmod +x "$LAUNCHER"
+sudo chmod +x "$BIN_DIR/video-editor"
 
 # ── Done ─────────────────────────────────────────────────────────────────────
 echo ""
-echo "Done. Usage:"
+echo "Done! Run:"
 echo ""
 echo "  video-editor --input video.mp4"
 echo ""

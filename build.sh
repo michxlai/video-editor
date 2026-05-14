@@ -42,6 +42,11 @@ hdiutil create \
 
 rm -rf "$STAGING"
 
+echo "=== Installing to /Applications ==="
+rm -rf "/Applications/Video Editor.app"
+cp -r "$APP" "/Applications/"
+rm -rf "$APP"
+
 echo ""
 echo "=== Done ==="
 echo "DMG: $DMG"
